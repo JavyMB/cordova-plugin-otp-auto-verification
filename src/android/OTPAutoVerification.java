@@ -82,7 +82,6 @@ public class OTPAutoVerification extends CordovaPlugin {
         AppSignatureHelper signatureHelper = new AppSignatureHelper(this.cordova.getActivity());
         ArrayList<String> appSignatures = signatureHelper.getAppSignatures();
         Log.d(TAG, appSignatures.toString());
-        callbackContext.success(appSignatures.toString());
     }
 
     private void startOTPListener(JSONArray options, final CallbackContext callbackContext) {
