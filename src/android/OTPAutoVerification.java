@@ -27,6 +27,7 @@ import org.apache.cordova.CordovaPlugin;
 import org.apache.cordova.PluginResult;
 import org.json.JSONArray;
 import org.json.JSONException;
+import android.widget.Toast;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -50,21 +51,6 @@ public class OTPAutoVerification extends CordovaPlugin {
             this.options = options;
             this.callbackContext = callbackContext;
             this.mContext = this.cordova.getActivity().getApplicationContext();
-            startOTPListener(options, callbackContext);
-
-            return true;
-        }else if (action.equals("stopOTPListener")) {
-            stopOTPListener();
-            return true;
-        }
-        return false;
-    }
-
-    private void startOTPListener(JSONArray options, final CallbackContext callbackContext) {
-        /* take init parameter from JS call */
-        try {
-            OTP_LENGTH = options.getJSONObject(0).getInt("length");
-
             SMSListener.bindListener(new Common.OTPListener() {
                 @Override
                 public void onOTPReceived(String otp) {
@@ -80,18 +66,32 @@ public class OTPAutoVerification extends CordovaPlugin {
                     callbackContext.error("TIMEOUT");
                 }
             });
-            startSMSListener();
+            startOTPListener(options, callbackContext);
+
+            return true;
+        }else if (action.equals("stopOTPListener")) {
+            stopOTPListener();
+            return true;
+        }
+        return false;
+    }
+
+    private void startOTPListener(JSONArray options, final CallbackContext callbackContext) {
+        /* take init parameter from JS call */
+        try {
+            OTP_LENGTH = options.getJSONObject(0).getInt("length");
 
         } catch (JSONException e) {
             e.printStackTrace();
         }
-        filter = new IntentFilter();
-        filter.addAction("android.provider.Telephony.SMS_RECEIVED");
-        cordova.getActivity().registerReceiver(new SMSListener(), filter);
-        PluginResult pluginResult = new PluginResult(PluginResult.Status.NO_RESULT);
+        startSMSListener();
+        final IntentFilter filter = new IntentFilter();
+        filter.addAction(SmsRetriever.SMS_RETRIEVED_ACTION);
+        cordova.getActivity().registerReceiver(new SMSListener(),filter); // start BroadcastReceiver 
+        PluginResult pluginResult = new PluginResult(PluginResult.Status.NO_RESULT); // Cordova plugin 
         pluginResult.setKeepCallback(true);
         callbackContext.sendPluginResult(pluginResult);
-        Log.i("SMS pluginResult", pluginResult.toString());
+        Log.d("SMS pluginResult", pluginResult.toString());
     }
 
     private void stopOTPListener(){
@@ -102,6 +102,7 @@ public class OTPAutoVerification extends CordovaPlugin {
     private void startSMSListener() {
         // Get an instance of SmsRetrieverClient, used to start listening for a matching
         // SMS message.
+        Log.d(TAG,"startSMSListener@ SmsRetrieverClient");
         SmsRetrieverClient client = SmsRetriever.getClient(mContext);
 
         // Starts SmsRetriever, which waits for ONE matching SMS message until timeout
@@ -125,7 +126,7 @@ public class OTPAutoVerification extends CordovaPlugin {
             public void onFailure(@NonNull Exception e) {
                 // Failed to start retriever, inspect Exception for more details
                 // ...
-                Log.d("smsListener", "FAILED");
+                Log.d("smsListener", "FAILED" + e.toString());
             }
         });
     }
@@ -154,33 +155,38 @@ public class OTPAutoVerification extends CordovaPlugin {
         public void onReceive(Context context, Intent intent) {
 
             // this function is trigged when each time a new SMS is received on device.
-
+            Log.d(TAG,"onReceive" + String.valueOf(SmsRetriever.SMS_RETRIEVED_ACTION.equals(intent.getAction())));
             if (SmsRetriever.SMS_RETRIEVED_ACTION.equals(intent.getAction())) {
                 Bundle extras = intent.getExtras();
                 Status status = (Status) extras.get(SmsRetriever.EXTRA_STATUS);
-
                 switch(status.getStatusCode()) {
                     case CommonStatusCodes.SUCCESS:
                         // Get SMS message contents
-                        String message = (String) extras.get(SmsRetriever.EXTRA_SMS_MESSAGE);
+                        // Toast.makeText(context, "Don't panik but your time is up!!!!.",
+                        // Toast.LENGTH_LONG).show();
+                        String smsMessage = (String) extras.get(SmsRetriever.EXTRA_SMS_MESSAGE);
+                        Log.d(TAG, "-------SMSListener.onReceive@SUCCESS Retrieved sms code: " + smsMessage);
                         // Extract one-time code from the message and complete verification
                         // by sending the code back to your server.
-
                         if(mListener!=null){
                             Pattern pattern = Pattern.compile("(\\d{"+OTP_LENGTH+"})");
-                            Matcher matcher = pattern.matcher(message);
+                            Matcher matcher = pattern.matcher(smsMessage);
                             String otp = "";
                             if (matcher.find()) {
                                 otp = matcher.group(1);  // x digit number
                             }
+                            Log.d(TAG,"-------SMSListener.onReceive@SUCCESS  mListener " + otp.toString());
                             mListener.onOTPReceived(otp);
                         }
+                        mListener.onOTPReceived(otp);
                         break;
                     case CommonStatusCodes.TIMEOUT:
                         // Waiting for SMS timed out (5 minutes)
                         // Handle the error ...
-                        mListener.onOTPTimeOut();
-                        Log.d("failed","this is failed");
+                        if(mListener!=null){
+                            mListener.onOTPTimeOut();
+                        }
+                        Log.d(TAG,"-------SMSListener.onReceive@TIMEOUT  failed ");
                         break;
                 }
             }
