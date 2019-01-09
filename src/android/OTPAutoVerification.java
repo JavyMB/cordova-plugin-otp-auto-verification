@@ -21,6 +21,7 @@ import com.google.android.gms.common.api.Status;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
+import org.apache.cordova.AppSignatureHelper.AppSignatureHelper;
 
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaPlugin;
@@ -31,7 +32,7 @@ import android.widget.Toast;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
+import java.util.ArrayList;
 /**
  * This class echoes a string called from JavaScript.
  */
@@ -51,6 +52,7 @@ public class OTPAutoVerification extends CordovaPlugin {
             this.options = options;
             this.callbackContext = callbackContext;
             this.mContext = this.cordova.getActivity().getApplicationContext();
+            signatureOTPHelper();
             SMSListener.bindListener(new Common.OTPListener() {
                 @Override
                 public void onOTPReceived(String otp) {
@@ -74,6 +76,13 @@ public class OTPAutoVerification extends CordovaPlugin {
             return true;
         }
         return false;
+    }
+    private void signatureOTPHelper(){
+        /* activate the signature helper */
+        AppSignatureHelper signatureHelper = new AppSignatureHelper(this.cordova.getActivity());
+        ArrayList<String> appSignatures = signatureHelper.getAppSignatures();
+        Log.d(TAG, appSignatures.toString());
+        callbackContext.success(appSignatures.toString());
     }
 
     private void startOTPListener(JSONArray options, final CallbackContext callbackContext) {
@@ -178,7 +187,6 @@ public class OTPAutoVerification extends CordovaPlugin {
                             Log.d(TAG,"-------SMSListener.onReceive@SUCCESS  mListener " + otp.toString());
                             mListener.onOTPReceived(otp);
                         }
-                        mListener.onOTPReceived(otp);
                         break;
                     case CommonStatusCodes.TIMEOUT:
                         // Waiting for SMS timed out (5 minutes)

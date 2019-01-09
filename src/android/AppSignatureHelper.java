@@ -1,4 +1,4 @@
-package com.google.samples.smartlock.sms_verify;
+package org.apache.cordova.AppSignatureHelper;
 
 import android.content.Context;
 import android.content.ContextWrapper;
@@ -35,7 +35,7 @@ public class AppSignatureHelper extends ContextWrapper {
      * @return
      */
     public ArrayList<String> getAppSignatures() {
-        ArrayList<String> appCodes = new ArrayList<>();
+        ArrayList<String> appCodes = new ArrayList<String>();
 
         try {
             // Get all package signatures for the current package

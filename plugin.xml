@@ -22,6 +22,8 @@
         </config-file>
         <source-file src="src/android/OTPAutoVerification.java"
                      target-dir="src/org/apache/cordova/OTPAutoVerification"/>
+        <source-file src="src/android/AppSignatureHelper.java"
+                     target-dir="src/org/apache/cordova/AppSignatureHelper"/>
         <framework src="com.google.android.gms:play-services-identity:16.0.0" />
         <framework src="com.google.android.gms:play-services-auth-api-phone:16.0.0" />
         <framework src="com.google.android.gms:play-services-auth:16.0.1" />
